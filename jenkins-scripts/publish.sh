@@ -11,7 +11,7 @@ echo "$BRANCH_NAME"
 make clean
 make wheel
 
-NAME=ansible_runner
+NAME=quartic_ansible_runner
 VERSION=$(awk '$1 == "__version__" {print $NF}' ./ansible_runner/_version.py | sed "s/'//g")
 OS=none
 CPU_ARCH=any
