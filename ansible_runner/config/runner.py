@@ -168,9 +168,10 @@ class RunnerConfig(BaseConfig):
             self.inventory = '/runner/inventory/hosts'
             return
 
-        if self.inventory is None:
-            if os.path.exists(os.path.join(self.private_data_dir, "inventory")):
-                self.inventory = os.path.join(self.private_data_dir, "inventory")
+        if self.inventory is None and os.path.exists(
+            os.path.join(self.private_data_dir, "inventory")
+        ):
+            self.inventory = os.path.join(self.private_data_dir, "inventory")
 
     def prepare_env(self):
         """
@@ -197,27 +198,27 @@ class RunnerConfig(BaseConfig):
 
         if 'AD_HOC_COMMAND_ID' in self.env or not os.path.exists(self.project_dir):
             self.cwd = self.private_data_dir
+        elif self.directory_isolation_path is not None:
+            self.cwd = self.directory_isolation_path
         else:
-            if self.directory_isolation_path is not None:
-                self.cwd = self.directory_isolation_path
-            else:
-                self.cwd = self.project_dir
+            self.cwd = self.project_dir
 
-        if 'fact_cache' in self.settings:
-            if 'fact_cache_type' in self.settings:
-                if self.settings['fact_cache_type'] == 'jsonfile':
-                    self.fact_cache = os.path.join(self.artifact_dir, self.settings['fact_cache'])
-            else:
-                self.fact_cache = os.path.join(self.artifact_dir, self.settings['fact_cache'])
-
+        if 'fact_cache' in self.settings and (
+            'fact_cache_type' in self.settings
+            and self.settings['fact_cache_type'] == 'jsonfile'
+            or 'fact_cache_type' not in self.settings
+        ):
+            self.fact_cache = os.path.join(self.artifact_dir, self.settings['fact_cache'])
         if self.resource_profiling:
             callback_whitelist = os.environ.get('ANSIBLE_CALLBACK_WHITELIST', '').strip()
             self.env['ANSIBLE_CALLBACK_WHITELIST'] = ','.join(filter(None, [callback_whitelist, 'cgroup_perf_recap']))
             self.env['CGROUP_CONTROL_GROUP'] = '{}/{}'.format(self.resource_profiling_base_cgroup, self.ident)
-            if self.resource_profiling_results_dir:
-                cgroup_output_dir = self.resource_profiling_results_dir
-            else:
-                cgroup_output_dir = os.path.normpath(os.path.join(self.private_data_dir, 'profiling_data'))
+            cgroup_output_dir = (
+                self.resource_profiling_results_dir
+                or os.path.normpath(
+                    os.path.join(self.private_data_dir, 'profiling_data')
+                )
+            )
 
             # Create results directory if it does not exist
             if not os.path.isdir(cgroup_output_dir):
@@ -271,10 +272,9 @@ class RunnerConfig(BaseConfig):
         exec_list = [base_command]
 
         try:
-            if self.cmdline_args:
-                cmdline_args = self.cmdline_args
-            else:
-                cmdline_args = self.loader.load_file('env/cmdline', string_types, encoding=None)
+            cmdline_args = self.cmdline_args or self.loader.load_file(
+                'env/cmdline', string_types, encoding=None
+            )
 
             if six.PY2 and isinstance(cmdline_args, text_type):
                 cmdline_args = cmdline_args.encode('utf-8')
@@ -307,10 +307,11 @@ class RunnerConfig(BaseConfig):
             exec_list.extend(['-e', '@{}'.format(extravars_path)])
 
         if self.extra_vars:
-            if isinstance(self.extra_vars, dict) and self.extra_vars:
-                extra_vars_list = []
-                for k in self.extra_vars:
-                    extra_vars_list.append("\"{}\":{}".format(k, json.dumps(self.extra_vars[k])))
+            if isinstance(self.extra_vars, dict):
+                extra_vars_list = [
+                    "\"{}\":{}".format(k, json.dumps(self.extra_vars[k]))
+                    for k in self.extra_vars
+                ]
 
                 exec_list.extend(
                     [
@@ -362,9 +363,15 @@ class RunnerConfig(BaseConfig):
         '''
         Wrap existing command line with cgexec in order to profile resource usage
         '''
-        new_args = ['cgexec', '--sticky', '-g', 'cpuacct,memory,pids:{}/{}'.format(self.resource_profiling_base_cgroup, self.ident)]
-        new_args.extend(args)
-        return new_args
+        return [
+            'cgexec',
+            '--sticky',
+            '-g',
+            'cpuacct,memory,pids:{}/{}'.format(
+                self.resource_profiling_base_cgroup, self.ident
+            ),
+            *args,
+        ]
 
     def wrap_args_for_sandbox(self, args):
         '''
@@ -389,11 +396,7 @@ class RunnerConfig(BaseConfig):
                 os.chmod(new_path, stat.S_IRUSR | stat.S_IWUSR)
             new_args.extend(['--bind', '{0}'.format(new_path), '{0}'.format(path)])
 
-        if self.private_data_dir:
-            show_paths = [self.private_data_dir]
-        else:
-            show_paths = [cwd]
-
+        show_paths = [self.private_data_dir] if self.private_data_dir else [cwd]
         for path in sorted(set(self.process_isolation_ro_paths or [])):
             if not os.path.exists(path):
                 logger.debug('read-only path not found: {0}'.format(path))
