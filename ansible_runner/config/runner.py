@@ -292,7 +292,8 @@ class RunnerConfig(BaseConfig):
                 exec_list.append(i)
         else:
             exec_list.append("-i")
-            exec_list.append(self.inventory)
+            host_file = self.inventory.split('/')[-1]
+            exec_list.append(self.loader.abspath(f'inventory/{host_file}'))
 
         if self.limit is not None:
             exec_list.append("--limit")

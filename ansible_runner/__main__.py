@@ -44,8 +44,9 @@ from ansible_runner.utils import dump_artifact, Bunch
 from ansible_runner.utils.capacity import get_cpu_count, get_mem_info
 from ansible_runner.runner import Runner
 from ansible_runner.exceptions import AnsibleRunnerException
+from ansible_runner._version import __version__
 
-VERSION = pkg_resources.require("ansible_runner")[0].version
+VERSION = __version__
 
 DEFAULT_ROLES_PATH = os.getenv('ANSIBLE_ROLES_PATH', None)
 DEFAULT_RUNNER_BINARY = os.getenv('RUNNER_BINARY', None)
