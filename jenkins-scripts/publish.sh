@@ -11,7 +11,7 @@ echo "$BRANCH_NAME"
 make wheel
 
 NAME=ansible-runner
-VERSION=$(awk '$1 == "__version__" {print $NF}' ./ansible/_version.py | sed "s/'//g")
+VERSION=$(awk '$1 == "__version__" {print $NF}' ./ansible_runner/_version.py | sed "s/'//g")
 OS=none
 CPU_ARCH=any
 
