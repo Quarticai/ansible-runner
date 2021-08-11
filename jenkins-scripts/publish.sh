@@ -8,9 +8,10 @@ echo $PWD
 set -ex
 echo "$BRANCH_NAME"
 
+make clean
 make wheel
 
-NAME=ansible-runner
+NAME=ansible_runner
 VERSION=$(awk '$1 == "__version__" {print $NF}' ./ansible_runner/_version.py | sed "s/'//g")
 OS=none
 CPU_ARCH=any
